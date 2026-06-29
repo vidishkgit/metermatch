@@ -4,12 +4,13 @@ import Link from "next/link";
 import { CountUp } from "@/components/CountUp";
 import { LeakBreakdown } from "@/components/LeakBreakdown";
 import { useActiveScan } from "@/lib/dataset";
-import { usd, usd2, severityStyle } from "@/lib/format";
-import type { ScanResult } from "@/lib/engine";
+import { usd, usd2, severityStyle, emptyScan } from "@/lib/format";
+import { EmptyState } from "@/components/EmptyState";
 import { ScanLine, TrendingUp, AlertTriangle, Wallet, Activity, ArrowRight } from "lucide-react";
 
-export function DashboardView({ serverScan }: { serverScan: ScanResult }) {
-  const { scan } = useActiveScan(serverScan);
+export function DashboardView() {
+  const { scan, dataset } = useActiveScan(emptyScan);
+  if (!dataset) return <EmptyState title="Dashboard" />;
   const { summary, findings } = scan;
 
   const kpis = [

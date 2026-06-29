@@ -3,11 +3,12 @@
 import { FinanceModel } from "@/components/FinanceModel";
 import { LeakBreakdown } from "@/components/LeakBreakdown";
 import { useActiveScan } from "@/lib/dataset";
-import { usd } from "@/lib/format";
-import type { ScanResult } from "@/lib/engine";
+import { usd, emptyScan } from "@/lib/format";
+import { EmptyState } from "@/components/EmptyState";
 
-export function FinanceView({ serverScan }: { serverScan: ScanResult }) {
-  const { scan } = useActiveScan(serverScan);
+export function FinanceView() {
+  const { scan, dataset } = useActiveScan(emptyScan);
+  if (!dataset) return <EmptyState title="Financial Impact" />;
   const { summary } = scan;
 
   return (

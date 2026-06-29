@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { runScan } from "@/app/actions";
-import type { ScanResult } from "@/lib/engine";
+import { loadLiveAccounts } from "@/app/actions";
+import { runReconciliation, type ScanResult } from "@/lib/engine";
+import { writeDataset } from "@/lib/dataset";
 import { CountUp } from "./CountUp";
 import { usd } from "@/lib/format";
 import { UploadCloud, Database, Play, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
@@ -15,9 +16,12 @@ export function ScanPanel() {
   async function handleScan() {
     setStatus("scanning");
     setResult(null);
-    // Let the scan animation play, then run the real engine.
+    // Let the scan animation play, then pull the live accounts and run the engine.
     await new Promise((r) => setTimeout(r, 1800));
-    const res = await runScan();
+    const { accounts, period } = await loadLiveAccounts();
+    const res = runReconciliation({ period, accounts });
+    // Store as the active dataset so the whole app reflects this scan.
+    writeDataset({ accounts, name: "Live scan (DynamoDB + Aurora)", kind: "aws", period, uploadedAt: Date.now() });
     setResult(res);
     setStatus("done");
   }

@@ -1,12 +1,14 @@
 "use client";
 
 import { useActiveScan } from "@/lib/dataset";
-import { usd2, severityStyle } from "@/lib/format";
-import type { ScanResult, Severity } from "@/lib/engine";
+import { usd2, severityStyle, emptyScan } from "@/lib/format";
+import type { Severity } from "@/lib/engine";
+import { EmptyState } from "@/components/EmptyState";
 import { CheckCircle2 } from "lucide-react";
 
-export function AccountsView({ serverScan }: { serverScan: ScanResult }) {
-  const { scan } = useActiveScan(serverScan);
+export function AccountsView() {
+  const { scan, dataset } = useActiveScan(emptyScan);
+  if (!dataset) return <EmptyState title="Accounts" />;
   const { findings, summary } = scan;
 
   type Row = { name: string; total: number; count: number; worst: Severity };

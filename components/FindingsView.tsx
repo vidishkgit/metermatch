@@ -2,10 +2,12 @@
 
 import { FindingsTable } from "@/components/FindingsTable";
 import { useActiveScan } from "@/lib/dataset";
-import type { ScanResult } from "@/lib/engine";
+import { emptyScan } from "@/lib/format";
+import { EmptyState } from "@/components/EmptyState";
 
-export function FindingsView({ serverScan }: { serverScan: ScanResult }) {
-  const { scan } = useActiveScan(serverScan);
+export function FindingsView() {
+  const { scan, dataset } = useActiveScan(emptyScan);
+  if (!dataset) return <EmptyState title="Findings" />;
   return (
     <div className="space-y-5 py-2">
       <div>

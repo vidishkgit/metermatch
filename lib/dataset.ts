@@ -16,7 +16,7 @@ const EVENT = "metermatch:dataset-change";
 export interface StoredDataset {
   accounts: Account[];
   name: string; // source file name / connector name
-  kind: "csv" | "pdf" | "stripe";
+  kind: "csv" | "pdf" | "stripe" | "aws";
   period: string;
   uploadedAt: number;
 }

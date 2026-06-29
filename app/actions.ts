@@ -24,6 +24,12 @@ export async function getLatestScan(): Promise<ScanResult> {
   return runScan();
 }
 
+// Returns the live accounts (+ period) so the client can store them as the active
+// dataset and drive the whole app — same mechanism as a CSV/PDF/Stripe upload.
+export async function loadLiveAccounts(): Promise<{ accounts: Account[]; period: string }> {
+  return { accounts: await loadAccounts(), period: PERIOD };
+}
+
 async function loadAccounts(): Promise<Account[]> {
   if (process.env.DATA_SOURCE !== "aws") return sampleAccounts;
 
