@@ -46,6 +46,21 @@ export async function verifyOtp(email: string, code: string): Promise<{ ok: bool
   return { ok: true };
 }
 
+// One-click demo sign-in — bypasses the email OTP so anyone (e.g. hackathon
+// judges) can explore the app even while SES is in sandbox. Creates a normal
+// session for a demo account.
+export async function demoLogin(): Promise<void> {
+  const token = await createSessionToken("demo@metermatch.app");
+  cookies().set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  });
+  redirect("/");
+}
+
 export async function signOut(): Promise<void> {
   cookies().delete(SESSION_COOKIE);
   redirect("/login");

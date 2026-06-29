@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Mail, Loader2, ShieldCheck } from "lucide-react";
-import { requestOtp } from "@/app/actions-auth";
+import { requestOtp, demoLogin } from "@/app/actions-auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -64,6 +64,21 @@ export default function LoginPage() {
         >
           {pending ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
           {pending ? "Sending code…" : "Send code"}
+        </button>
+      </form>
+
+      <div className="my-5 flex items-center gap-3 text-[11px] text-slate-600">
+        <span className="h-px flex-1 bg-white/[0.08]" />
+        or
+        <span className="h-px flex-1 bg-white/[0.08]" />
+      </div>
+
+      <form action={demoLogin}>
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-slate-200 hover:bg-white/[0.06] hover:border-white/20 transition"
+        >
+          <ArrowRight size={16} /> Explore the demo
         </button>
       </form>
 
