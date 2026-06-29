@@ -36,6 +36,50 @@ async function sget<T>(path: string, key: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Phase 3 — write-back. Creates a DRAFT correction in Stripe: a pending invoice
+// item on the customer. It is NOT a charge — nothing is billed until a human
+// creates and finalizes an invoice in Stripe. Safe by design.
+export interface StripeDraftResult {
+  ok: boolean;
+  id?: string;
+  error?: string;
+}
+
+export async function createStripeDraftCorrection(args: {
+  apiKey: string;
+  customerId: string;
+  amount: number; // dollars
+  description: string;
+}): Promise<StripeDraftResult> {
+  const key = args.apiKey.trim();
+  if (!/^(sk|rk)_(test|live)_/.test(key)) return { ok: false, error: "Invalid Stripe secret key." };
+  if (!/^cus_/.test(args.customerId)) return { ok: false, error: "This account isn't a Stripe customer." };
+  const cents = Math.round(args.amount * 100);
+  if (cents <= 0) return { ok: false, error: "Nothing to correct for this finding." };
+
+  try {
+    const body = new URLSearchParams();
+    body.set("customer", args.customerId);
+    body.set("amount", String(cents));
+    body.set("currency", "usd");
+    body.set("description", args.description);
+    const res = await fetch(`${API}/invoiceitems`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Stripe-Version": "2024-06-20",
+      },
+      body,
+    });
+    const json = (await res.json()) as { id?: string; error?: { message?: string } };
+    if (!res.ok) return { ok: false, error: json.error?.message || `Stripe ${res.status}` };
+    return { ok: true, id: json.id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Stripe request failed." };
+  }
+}
+
 export async function importFromStripe(apiKey: string): Promise<StripeImportResult> {
   const key = apiKey.trim();
   if (!/^(sk|rk)_(test|live)_/.test(key)) {

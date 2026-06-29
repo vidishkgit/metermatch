@@ -6,10 +6,20 @@ import type { Finding, Severity } from "@/lib/engine";
 import { usd2, severityStyle } from "@/lib/format";
 import { findingsToCsv, downloadText } from "@/lib/csv";
 import { exportFindingsPdf } from "@/lib/pdf";
-import { X, ArrowUpDown, Search, Download, Check, RotateCcw, FileText } from "lucide-react";
+import { remediate } from "@/lib/remediation";
+import { StripeDraftButton } from "@/components/StripeDraftButton";
+import { X, ArrowUpDown, Search, Download, Check, FileText, Mail, ClipboardCopy, Wrench, CircleDot, Loader } from "lucide-react";
 
 const SEVERITIES: (Severity | "all")[] = ["all", "critical", "high", "medium", "low"];
-const STORAGE_KEY = "metermatch:resolved";
+const STORAGE_KEY = "metermatch:status";
+
+type Status = "open" | "in_progress" | "recovered";
+
+const statusMeta: Record<Status, { label: string; cls: string; Icon: typeof CircleDot }> = {
+  open: { label: "Open", cls: "border-slate-500/30 bg-slate-500/10 text-slate-300", Icon: CircleDot },
+  in_progress: { label: "In progress", cls: "border-amber-500/30 bg-amber-500/10 text-amber-300", Icon: Loader },
+  recovered: { label: "Recovered", cls: "border-accent-emerald/25 bg-accent-emerald/10 text-accent-emerald", Icon: Check },
+};
 
 export function FindingsTable({ findings }: { findings: Finding[] }) {
   const params = useSearchParams();
@@ -17,67 +27,69 @@ export function FindingsTable({ findings }: { findings: Finding[] }) {
   const [sev, setSev] = useState<Severity | "all">("all");
   const [sortDesc, setSortDesc] = useState(true);
   const [active, setActive] = useState<Finding | null>(null);
-  const [resolved, setResolved] = useState<Set<string>>(new Set());
-  const [showResolved, setShowResolved] = useState(false);
+  const [statuses, setStatuses] = useState<Record<string, Status>>({});
+  const [showRecovered, setShowRecovered] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
 
-  // Seed the search box from a ?q= param (Topbar search routes here).
   useEffect(() => {
     const q = params.get("q");
     if (q) setQuery(q);
   }, [params]);
 
-  // Resolved findings persist locally so they survive reloads.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setResolved(new Set(JSON.parse(raw) as string[]));
+      if (raw) setStatuses(JSON.parse(raw) as Record<string, Status>);
     } catch {
       /* ignore */
     }
   }, []);
 
-  function persist(next: Set<string>) {
-    setResolved(next);
+  function statusOf(id: string): Status {
+    return statuses[id] ?? "open";
+  }
+
+  function setStatus(id: string, status: Status) {
+    const next = { ...statuses, [id]: status };
+    setStatuses(next);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
       /* ignore */
     }
   }
 
-  function toggleResolve(id: string) {
-    const next = new Set(resolved);
-    next.has(id) ? next.delete(id) : next.add(id);
-    persist(next);
-  }
-
   const rows = useMemo(() => {
     let r = findings.filter((f) => (sev === "all" ? true : f.severity === sev));
-    if (!showResolved) r = r.filter((f) => !resolved.has(f.id));
+    if (!showRecovered) r = r.filter((f) => statusOf(f.id) !== "recovered");
     if (query.trim()) {
       const q = query.toLowerCase();
       r = r.filter((f) => f.accountName.toLowerCase().includes(q) || f.title.toLowerCase().includes(q));
     }
     return [...r].sort((a, b) => (sortDesc ? b.annualRecoverable - a.annualRecoverable : a.annualRecoverable - b.annualRecoverable));
-  }, [findings, query, sev, sortDesc, resolved, showResolved]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [findings, query, sev, sortDesc, statuses, showRecovered]);
 
-  const total = rows.reduce((s, f) => s + (resolved.has(f.id) ? 0 : f.annualRecoverable), 0);
-  const resolvedCount = findings.filter((f) => resolved.has(f.id)).length;
+  const openTotal = rows.reduce((s, f) => s + (statusOf(f.id) === "recovered" ? 0 : f.annualRecoverable), 0);
+  const recovered = findings.filter((f) => statusOf(f.id) === "recovered");
+  const recoveredAnnual = recovered.reduce((s, f) => s + f.annualRecoverable, 0);
 
   function exportAll() {
     if (rows.length === 0) return;
-    const stamp = new Date().toISOString().slice(0, 10);
-    downloadText(`metermatch-findings-${stamp}.csv`, findingsToCsv(rows));
+    downloadText(`metermatch-findings-${new Date().toISOString().slice(0, 10)}.csv`, findingsToCsv(rows));
   }
-
-  function exportOne(f: Finding) {
-    downloadText(`metermatch-finding-${f.accountId}-${f.rule}.csv`, findingsToCsv([f]));
-  }
-
   function exportPdf() {
-    if (rows.length === 0) return;
-    const period = rows[0]?.period;
-    exportFindingsPdf(rows, { period });
+    if (rows.length > 0) exportFindingsPdf(rows, { period: rows[0]?.period });
+  }
+
+  async function copy(label: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      /* clipboard blocked */
+    }
   }
 
   return (
@@ -128,14 +140,11 @@ export function FindingsTable({ findings }: { findings: Finding[] }) {
 
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs text-slate-500 tabular">
-          {rows.length} {showResolved ? "shown" : "open"} · {usd2(total)} recoverable
+          {rows.length} {showRecovered ? "shown" : "open"} · {usd2(openTotal)} recoverable
         </p>
-        {resolvedCount > 0 && (
-          <button
-            onClick={() => setShowResolved((v) => !v)}
-            className="text-xs text-slate-400 hover:text-white transition"
-          >
-            {showResolved ? "Hide" : "Show"} {resolvedCount} resolved
+        {recovered.length > 0 && (
+          <button onClick={() => setShowRecovered((v) => !v)} className="text-xs text-slate-400 hover:text-white transition">
+            {showRecovered ? "Hide" : "Show"} {recovered.length} recovered · {usd2(recoveredAnnual)} captured
           </button>
         )}
       </div>
@@ -161,7 +170,7 @@ export function FindingsTable({ findings }: { findings: Finding[] }) {
               <tr className="text-left text-[11px] tracking-wider text-slate-400 border-b border-white/[0.06]">
                 <th className="px-5 py-3 font-medium">ACCOUNT</th>
                 <th className="px-5 py-3 font-medium">LEAKAGE TYPE</th>
-                <th className="px-5 py-3 font-medium">PERIOD</th>
+                <th className="px-5 py-3 font-medium">STATUS</th>
                 <th className="px-5 py-3 font-medium text-right">EXPECTED</th>
                 <th className="px-5 py-3 font-medium text-right">BILLED</th>
                 <th className="px-5 py-3 font-medium text-right">
@@ -175,31 +184,30 @@ export function FindingsTable({ findings }: { findings: Finding[] }) {
             <tbody>
               {rows.map((f) => {
                 const s = severityStyle[f.severity];
-                const isResolved = resolved.has(f.id);
+                const st = statusOf(f.id);
+                const sm = statusMeta[st];
                 return (
                   <tr
                     key={f.id}
                     onClick={() => setActive(f)}
                     className={`border-b border-white/[0.04] hover:bg-white/[0.03] cursor-pointer transition ${
-                      isResolved ? "opacity-45" : ""
+                      st === "recovered" ? "opacity-50" : ""
                     }`}
                   >
-                    <td className={`px-5 py-3.5 text-white ${isResolved ? "line-through" : ""}`}>{f.accountName}</td>
+                    <td className={`px-5 py-3.5 text-white ${st === "recovered" ? "line-through" : ""}`}>{f.accountName}</td>
                     <td className="px-5 py-3.5 text-slate-300">{f.title}</td>
-                    <td className="px-5 py-3.5 text-slate-500 tabular">{f.period}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] ${sm.cls}`}>
+                        <sm.Icon size={11} /> {sm.label}
+                      </span>
+                    </td>
                     <td className="px-5 py-3.5 text-right tabular text-slate-300">{usd2(f.expected)}</td>
                     <td className="px-5 py-3.5 text-right tabular text-slate-400">{usd2(f.billed)}</td>
                     <td className="px-5 py-3.5 text-right tabular font-semibold text-accent-emerald">{usd2(f.annualRecoverable)}</td>
                     <td className="px-5 py-3.5">
-                      {isResolved ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-accent-emerald/25 bg-accent-emerald/10 px-2.5 py-1 text-[11px] text-accent-emerald">
-                          <Check size={11} /> Resolved
-                        </span>
-                      ) : (
-                        <span className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] ${s.cls}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} /> {s.label}
-                        </span>
-                      )}
+                      <span className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] ${s.cls}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} /> {s.label}
+                      </span>
                     </td>
                   </tr>
                 );
@@ -230,15 +238,9 @@ export function FindingsTable({ findings }: { findings: Finding[] }) {
             <div className="mt-6 rounded-xl border border-white/[0.07] bg-white/[0.02] p-5">
               <p className="text-xs text-slate-400">Annual recoverable</p>
               <p className="font-display text-accent-emerald text-4xl font-bold mt-1 tabular">{usd2(active.annualRecoverable)}</p>
-              {resolved.has(active.id) ? (
-                <span className="inline-flex items-center gap-1.5 mt-3 rounded-md border border-accent-emerald/25 bg-accent-emerald/10 px-2.5 py-1 text-[11px] text-accent-emerald">
-                  <Check size={11} /> Resolved
-                </span>
-              ) : (
-                <span className={`inline-flex items-center gap-1.5 mt-3 rounded-md border px-2.5 py-1 text-[11px] ${severityStyle[active.severity].cls}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${severityStyle[active.severity].dot}`} /> {severityStyle[active.severity].label}
-                </span>
-              )}
+              <span className={`inline-flex items-center gap-1.5 mt-3 rounded-md border px-2.5 py-1 text-[11px] ${severityStyle[active.severity].cls}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${severityStyle[active.severity].dot}`} /> {severityStyle[active.severity].label}
+              </span>
             </div>
 
             <p className="text-sm text-slate-300 leading-relaxed mt-5">{active.detail}</p>
@@ -254,31 +256,74 @@ export function FindingsTable({ findings }: { findings: Finding[] }) {
               </div>
             </div>
 
-            <div className="mt-6 flex gap-2">
-              <button
-                onClick={() => toggleResolve(active.id)}
-                className={`flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition ${
-                  resolved.has(active.id)
-                    ? "border border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.04]"
-                    : "bg-indigo-500 text-white hover:bg-indigo-400"
-                }`}
-              >
-                {resolved.has(active.id) ? (
-                  <>
-                    <RotateCcw size={14} /> Reopen
-                  </>
-                ) : (
-                  <>
-                    <Check size={15} /> Mark as resolved
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => exportOne(active)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/[0.04] transition"
-              >
-                <Download size={14} /> Export
-              </button>
+            {/* Remediation */}
+            {(() => {
+              const rem = remediate(active);
+              return (
+                <div className="mt-6 rounded-xl border border-indigo-400/20 bg-indigo-500/[0.06] p-5">
+                  <div className="flex items-center gap-2 text-indigo-100">
+                    <Wrench size={15} className="text-indigo-300" />
+                    <p className="text-sm font-semibold">How to fix it</p>
+                  </div>
+                  <p className="mt-2 text-sm text-white">{rem.action}</p>
+                  <p className="mt-0.5 text-xs text-indigo-200/80">One-time correction: {usd2(rem.oneTime)}</p>
+                  <ol className="mt-3 space-y-1.5">
+                    {rem.steps.map((s, i) => (
+                      <li key={i} className="flex gap-2 text-xs text-slate-300">
+                        <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-white/10 text-[9px] text-white">{i + 1}</span>
+                        {s}
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => copy("email", `Subject: ${rem.email.subject}\n\n${rem.email.body}`)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1.5 text-xs text-indigo-50 hover:bg-white/10 transition"
+                    >
+                      <Mail size={12} /> {copied === "email" ? "Copied!" : "Copy customer email"}
+                    </button>
+                    <button
+                      onClick={() => copy("memo", rem.memo)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1.5 text-xs text-indigo-50 hover:bg-white/10 transition"
+                    >
+                      <ClipboardCopy size={12} /> {copied === "memo" ? "Copied!" : "Copy memo"}
+                    </button>
+                    <button
+                      onClick={() => downloadText(`correction-${active.accountId}-${active.rule}.txt`, rem.memo, "text/plain")}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1.5 text-xs text-indigo-50 hover:bg-white/10 transition"
+                    >
+                      <Download size={12} /> Memo .txt
+                    </button>
+                  </div>
+                  <StripeDraftButton
+                    customerId={active.accountId}
+                    amount={rem.oneTime}
+                    description={`MeterMatch correction — ${active.title} (${active.period})`}
+                  />
+                </div>
+              );
+            })()}
+
+            {/* Status workflow */}
+            <div className="mt-6">
+              <p className="text-xs font-medium text-slate-400 mb-2">Status</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["open", "in_progress", "recovered"] as Status[]).map((st) => {
+                  const sm = statusMeta[st];
+                  const isCur = statusOf(active.id) === st;
+                  return (
+                    <button
+                      key={st}
+                      onClick={() => setStatus(active.id, st)}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
+                        isCur ? sm.cls : "border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.04]"
+                      }`}
+                    >
+                      <sm.Icon size={13} /> {sm.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
