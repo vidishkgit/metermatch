@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 import { runReconciliation, type Account, type ScanResult } from "./engine";
 
 const KEY = "metermatch:dataset";
+const HISTORY_KEY = "metermatch:history";
+const HISTORY_MAX = 12;
 const EVENT = "metermatch:dataset-change";
 
 export interface StoredDataset {
@@ -38,10 +40,67 @@ export function writeDataset(d: StoredDataset): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(KEY, JSON.stringify(d));
+    pushHistory(d);
     window.dispatchEvent(new Event(EVENT));
   } catch {
     /* quota / serialization — ignore */
   }
+}
+
+/* ----------------------------- upload history ----------------------------- */
+// Every upload/scan/import is kept here so past files live in one place and can
+// be re-activated later. Keyed by uploadedAt; capped to the most recent few.
+
+export function readHistory(): StoredDataset[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const list = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as StoredDataset[];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function pushHistory(d: StoredDataset): void {
+  const list = readHistory().filter((x) => x.uploadedAt !== d.uploadedAt && x.name !== d.name);
+  list.unshift(d);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
+  } catch {
+    /* quota — keep fewer */
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 4)));
+    } catch {
+      /* give up on history */
+    }
+  }
+}
+
+export function removeFromHistory(uploadedAt: number): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(readHistory().filter((x) => x.uploadedAt !== uploadedAt)));
+  window.dispatchEvent(new Event(EVENT));
+}
+
+export function activateDataset(d: StoredDataset): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEY, JSON.stringify(d));
+  window.dispatchEvent(new Event(EVENT));
+}
+
+export function useHistory(): StoredDataset[] {
+  const [list, setList] = useState<StoredDataset[]>([]);
+  useEffect(() => {
+    const sync = () => setList(readHistory());
+    sync();
+    window.addEventListener(EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  return list;
 }
 
 export function clearDataset(): void {

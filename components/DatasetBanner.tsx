@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActiveScan } from "@/lib/dataset";
 import { emptyScan } from "@/lib/format";
-import { FileText, X } from "lucide-react";
+import { FileText, X, UploadCloud } from "lucide-react";
 
 // Shown across every page while an uploaded dataset is driving the app.
 export function DatasetBanner() {
@@ -22,12 +23,20 @@ export function DatasetBanner() {
           </span>
         </span>
       </div>
-      <button
-        onClick={clear}
-        className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-xs text-indigo-100 hover:bg-white/10 transition"
-      >
-        <X size={13} /> Back to live data
-      </button>
+      <div className="flex shrink-0 items-center gap-2">
+        <Link
+          href="/data-sources"
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-xs text-indigo-100 hover:bg-white/10 transition"
+        >
+          <UploadCloud size={13} /> Upload new data
+        </Link>
+        <button
+          onClick={clear}
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-xs text-indigo-100 hover:bg-white/10 transition"
+        >
+          <X size={13} /> Clear
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { ScanPanel } from "@/components/ScanPanel";
 import { Integrations } from "@/components/Integrations";
 import { CsvUpload } from "@/components/CsvUpload";
+import { UploadHistory } from "@/components/UploadHistory";
 
 export default function DataSourcesPage() {
   return (
@@ -13,6 +14,7 @@ export default function DataSourcesPage() {
       </div>
       <ScanPanel />
       <CsvUpload />
+      <UploadHistory />
       <Integrations />
     </div>
   );
