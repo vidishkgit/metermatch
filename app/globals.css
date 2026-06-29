@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b0f1a;
+}
+
+html,
+body {
+  background-color: #070a12;
+  color: #e8edf7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Restrained ambient wash + fine grid behind the app */
+body {
+  background-image:
+    radial-gradient(1100px 600px at 82% -12%, rgba(99, 102, 241, 0.08), transparent 62%),
+    radial-gradient(800px 600px at 0% 0%, rgba(45, 212, 191, 0.04), transparent 58%),
+    linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
+  background-size: auto, auto, 56px 56px, 56px 56px;
+  background-attachment: fixed;
+}
+
+/* Subtle grain for a non-templated, premium feel */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(6px);
+}
+
+.gradient-text {
+  background: linear-gradient(92deg, #a5b4fc, #c4b5fd 55%, #99f6e4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.accent-bar {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6 60%, #2dd4bf);
+  background-size: 200% 100%;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+::selection {
+  background: rgba(139, 92, 246, 0.35);
+  color: #fff;
+}
+
+/* Range sliders (finance model) */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #a78bfa, #6366f1);
+  border: 2px solid #0b0f1a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: #8b5cf6;
+  border: 2px solid #0b0f1a;
+}

@@ -1,0 +1,7 @@
+id,name,planName,base,includedCalls,overageRate,ratePerCall,discountPct,minimumMonthly,priceUpliftPct,status,usageCalls,invBase,billedOverageCalls,billedOverageRate,discountPctApplied,paymentStatus,discountEndsOn,upgradedOn,previousBase,fxRateContracted,currency,creditBalance,fxRateApplied,foreignSubtotal,creditsApplied,meteredOverageCalls
+acc_acme,Acme Corp,Growth,999,1000000,0.0015,0.0015,0,999,0,active,6000000,999,0,0.0015,0,paid,,,,,,,,,,
+acc_globex,Globex,Scale,2000,5000000,0.001,0.001,15,2000,0,active,4000000,2000,0,0.001,15,paid,2025-12-31,,,,,,,,,
+acc_initech,Initech,Growth,1500,2000000,0.002,0.002,0,1500,10,active,1500000,1500,0,0.002,0,paid,,2026-01-01,1500,,,,,,,
+acc_umbrella,Umbrella Co,Scale,1000,1000000,0.0015,0.0015,0,1000,0,active,900000,1000,0,0.0015,0,paid,,,,1.10,EUR,,1.00,1000,,
+acc_stark,Stark Industries,Enterprise,3000,10000000,0.0008,0.0008,0,3000,0,active,8000000,3000,0,0.0008,0,paid,,,,,,500,,,2000,
+acc_healthy,Healthy Inc,Growth,999,1000000,0.0015,0.0015,0,999,0,active,400000,999,0,0.0015,0,paid,,,,,,,,,,

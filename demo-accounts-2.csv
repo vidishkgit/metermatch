@@ -1,0 +1,8 @@
+id,name,planName,base,includedCalls,overageRate,ratePerCall,discountPct,minimumMonthly,priceUpliftPct,status,usageCalls,invBase,billedOverageCalls,billedOverageRate,discountPctApplied,paymentStatus,discountEndsOn,upgradedOn,previousBase,fxRateContracted,currency,creditBalance,fxRateApplied,foreignSubtotal,creditsApplied,meteredOverageCalls
+acc_nimbus,Nimbus Data,Enterprise,4500,2000000,0.002,0.002,0,4500,0,active,15000000,4500,0,0.002,0,paid,,,,,,,,,,
+acc_vertex,Vertex Labs,Scale,2750,6000000,0.0012,0.0012,25,2750,0,active,5000000,2750,0,0.0012,25,paid,2026-02-28,,,,,,,,,
+acc_cobalt,Cobalt Systems,Growth,4000,3000000,0.0018,0.0018,0,4000,8,active,2800000,4000,0,0.0018,0,paid,,2026-03-01,4000,,,,,,,
+acc_pinnacle,Pinnacle GmbH,Scale,3200,4000000,0.0015,0.0015,0,3200,0,active,3500000,3200,0,0.0015,0,paid,,,,1.27,GBP,,1.20,3200,,
+acc_helix,Helix Bio,Enterprise,6000,12000000,0.0007,0.0007,0,6000,0,active,9000000,6000,0,0.0007,0,paid,,,,,,800,,,3500,
+acc_lumen,Lumen Retail,Growth,1200,1500000,0.0016,0.0016,0,5000,0,active,600000,1200,0,0.0016,0,paid,,,,,,,,,,
+acc_steadfast,Steadfast Inc,Scale,2200,5000000,0.001,0.001,0,2200,0,active,1800000,2200,0,0.001,0,paid,,,,,,,,,,
